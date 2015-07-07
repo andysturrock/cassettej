@@ -31,13 +31,14 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * A content-addressable store backed by the file system. Default implementation
  * of ContentAddressableStore.
  * 
  */
-public final class ContentAddressableStoreImpl implements
+public final class ContentAddressableStoreFileImpl implements
 		ContentAddressableStore {
 	/**
 	 * The root path for all content within this store
@@ -54,6 +55,8 @@ public final class ContentAddressableStoreImpl implements
 	 * level subdirectories.
 	 */
 	private final int hashPrefixLength = 4;
+	
+	public final static String rootPathPropertyName = ContentAddressableStoreFileImpl.class.getName() + ".rootPath";
 
 	/**
 	 * Initialises the store, using rootPath as the root for all content.
@@ -62,10 +65,14 @@ public final class ContentAddressableStoreImpl implements
 	 *            Root path for all content in this store.
 	 * @throws IOException
 	 */
-	public ContentAddressableStoreImpl(String rootPath) throws IOException {
-		if (rootPath == null)
-			throw new IllegalArgumentException("rootPath");
+	public ContentAddressableStoreFileImpl(Properties properties) throws IOException {
+		if (properties == null)
+			throw new IllegalArgumentException("properties");
 
+		String rootPath = properties.getProperty(rootPathPropertyName);
+		if(rootPath == null || rootPath.equals("")) {
+			throw new IllegalArgumentException("No property " + rootPathPropertyName + " found");
+		}
 		this.rootPath = Paths.get(rootPath);
 
 		if (!Files.isDirectory(this.rootPath))

@@ -1,8 +1,11 @@
 package org.sturrock.cassette.cassettej;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.fail;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -12,15 +15,16 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
+import java.util.Properties;
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
- * Unit test for simple ContentAddressableStoreImpl.
+ * Unit test for simple ContentAddressableStoreFileImpl.
  */
-public class ContentAddressableStoreImplTest extends TestCase {
+public class ContentAddressableStoreFileImplTest {
 	private ContentAddressableStore cas;
 	private Path tempDir;
 	private String helloWorldString = "Hello World";
@@ -28,26 +32,18 @@ public class ContentAddressableStoreImplTest extends TestCase {
 	private byte[] helloWorldHash = Hash
 			.getBytes("0A4D55A8D778E5022FAB701977C5D840BBC486D0");
 
-	public ContentAddressableStoreImplTest(String testName) {
-		super(testName);
+	@Before
+	public void setUp() throws IOException {
+		tempDir = Files.createTempDirectory("ContentAddressableStoreFileImplTest");
+		Properties properties = new Properties();
+		properties.put(ContentAddressableStoreFileImpl.rootPathPropertyName,
+				tempDir.toString());
+		cas = new ContentAddressableStoreFileImpl(properties);
 	}
 
-	public void setUp() {
-		try {
-			tempDir = Files
-					.createTempDirectory("ContentAddressableStoreImplTest");
-			cas = new ContentAddressableStoreImpl(tempDir.toString());
-		} catch (IOException e) {
-			super.fail();
-		}
-	}
-
-	public void tearDown() {
-		try {
-			deleteTempDirectory();
-		} catch (IOException e) {
-			fail();
-		}
+	@After
+	public void tearDown() throws IOException {
+		deleteTempDirectory();
 	}
 
 	private void deleteTempDirectory() throws IOException {
@@ -73,13 +69,6 @@ public class ContentAddressableStoreImplTest extends TestCase {
 		});
 	}
 
-	/**
-	 * @return the suite of tests being tested
-	 */
-	public static Test suite() {
-		return new TestSuite(ContentAddressableStoreImplTest.class);
-	}
-
 	private byte[] writeHelloWorld() throws IOException {
 
 		byte[] bytes = helloWorldString.getBytes(StandardCharsets.UTF_8);
@@ -90,106 +79,76 @@ public class ContentAddressableStoreImplTest extends TestCase {
 		return hash;
 	}
 
-	public void testWrite() {
-		byte[] actual;
-		try {
-			actual = writeHelloWorld();
-			assert (Hash.equals(actual, helloWorldHash));
-		} catch (IOException e) {
-			fail(e.getMessage());
-		}
+	@Test(expected = IllegalArgumentException.class)
+	public void testConstructor() throws IOException {
+		Properties properties = new Properties();
+		cas = new ContentAddressableStoreFileImpl(properties);
 	}
 
-	public void testContains() {
-		try {
-			writeHelloWorld();
-		} catch (IOException e) {
-			fail(e.getMessage());
-		}
+	@Test
+	public void testWrite() throws IOException {
+		byte[] actual;
+		actual = writeHelloWorld();
+		assertArrayEquals(actual, helloWorldHash);
+	}
+
+	@Test
+	public void testContains() throws IOException {
+		writeHelloWorld();
 		// Now cas should contain some content with this hash
 		assert (cas.contains(helloWorldHash));
 	}
 
-	public void testGetContentLength() {
-		try {
-			writeHelloWorld();
-		} catch (IOException e) {
-			fail(e.getMessage());
-		}
+	@Test
+	public void testGetContentLength() throws IOException {
+		writeHelloWorld();
 		// The content length should be 11 (Hello World)
-		try {
-			assertEquals(cas.getContentLength(helloWorldHash),
-					helloWorldString.length());
-		} catch (IOException e) {
-			fail(e.getMessage());
-		}
+		assertEquals(cas.getContentLength(helloWorldHash),
+				helloWorldString.length());
 	}
 
-	public void testGetHashes() {
-		try {
-			writeHelloWorld();
-		} catch (IOException e) {
-			fail(e.getMessage());
-		}
+	@Test
+	public void testGetHashes() throws IOException {
+		writeHelloWorld();
 
 		List<byte[]> hashes;
-		try {
-			hashes = cas.getHashes();
-			// Should only be one piece of content
-			assertEquals(hashes.size(), 1);
-			// The hash should be the same as above
-			assert (Hash.equals(helloWorldHash, hashes.get(0)));
-		} catch (IOException e) {
-			fail(e.getMessage());
+		hashes = cas.getHashes();
+		// Should only be one piece of content
+		assertEquals(hashes.size(), 1);
+		// The hash should be the same as above
+		assertArrayEquals(helloWorldHash, hashes.get(0));
+
+	}
+
+	@Test
+	public void testRead() throws IOException {
+		writeHelloWorld();
+
+		try (InputStream stream = cas.read(helloWorldHash);) {
+			if (stream == null)
+				fail("Content not found");
+			String content = new String(readFully(stream),
+					StandardCharsets.UTF_8);
+			// Content should be Hello World
+			assertEquals(helloWorldString, content);
 		}
 	}
 
-	public void testRead() {
-		try {
-			writeHelloWorld();
-		} catch (IOException e) {
-			fail(e.getMessage());
-		}
-
-		try {
-			try(InputStream stream = cas.read(helloWorldHash);) {
-				if (stream == null)
-					fail("Content not found");
-				String content = new String(readFully(stream),
-						StandardCharsets.UTF_8);
-				// Content should be Hello World
-				assertEquals(helloWorldString, content);
-			}
-		} catch (FileNotFoundException e) {
-			fail(e.getMessage());
-		} catch (IOException e) {
-			fail(e.getMessage());
-		}
-	}
-
-	public void testDelete() {
-		try {
-			writeHelloWorld();
-		} catch (IOException e) {
-			fail(e.getMessage());
-		}
+	@Test
+	public void testDelete() throws IOException {
+		writeHelloWorld();
 		List<byte[]> hashes;
-		try {
-			hashes = cas.getHashes();
-			// Should only be one piece of content
-			assertEquals(hashes.size(), 1);
+		hashes = cas.getHashes();
+		// Should only be one piece of content
+		assertEquals(hashes.size(), 1);
 
-			byte[] hash = hashes.get(0);
+		byte[] hash = hashes.get(0);
 
-			cas.delete(hash);
+		cas.delete(hash);
 
-			hashes = cas.getHashes();
-			// Now should be no content
-			assertEquals(hashes.size(), 0);
-
-		} catch (IOException e) {
-			fail(e.getMessage());
-		}
+		hashes = cas.getHashes();
+		// Now should be no content
+		assertEquals(hashes.size(), 0);
 	}
 
 	private static byte[] readFully(InputStream inputStream) throws IOException {

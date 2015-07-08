@@ -79,6 +79,7 @@ public final class ContentAddressableStoreFileImpl implements
 			Files.createDirectories(this.rootPath);
 	}
 
+	@Override
 	public byte[] write(InputStream inputStream) throws IOException {
 		if (inputStream == null)
 			throw new IllegalArgumentException("inputStream");
@@ -134,6 +135,7 @@ public final class ContentAddressableStoreFileImpl implements
 		return hash;
 	}
 
+	@Override
 	public boolean contains(byte[] hash) {
 		if (hash == null)
 			throw new IllegalArgumentException("hash");
@@ -144,6 +146,7 @@ public final class ContentAddressableStoreFileImpl implements
 		return Files.exists(contentPath);
 	}
 
+	@Override
 	public InputStream read(byte[] hash) throws FileNotFoundException {
 		if (hash == null)
 			throw new IllegalArgumentException("hash");
@@ -158,6 +161,7 @@ public final class ContentAddressableStoreFileImpl implements
 		return new FileInputStream(contentPath.toFile());
 	}
 
+	@Override
 	public long getContentLength(byte[] hash) throws IOException {
 		if (hash == null)
 			throw new IllegalArgumentException("hash");
@@ -174,6 +178,7 @@ public final class ContentAddressableStoreFileImpl implements
 		return attrs.size();
 	}
 
+	@Override
 	public List<byte[]> getHashes() throws IOException  {
 		List<byte[]> hashes = new LinkedList<byte[]>();
 
@@ -193,6 +198,7 @@ public final class ContentAddressableStoreFileImpl implements
 		}
 	}
 
+	@Override
 	public boolean delete(byte[] hash) throws IOException {
 		String hashString = Hash.getString(hash);
 		Path contentPath = getContentPath(hashString);
@@ -215,5 +221,11 @@ public final class ContentAddressableStoreFileImpl implements
 		Path subPath = Paths.get(rootPath.toString(),
 				hashString.substring(0, hashPrefixLength));
 		return subPath;
+	}
+	
+	@Override
+	public void close() {
+		// Nothing to do here.
+		// Could delete all the content we own?
 	}
 }

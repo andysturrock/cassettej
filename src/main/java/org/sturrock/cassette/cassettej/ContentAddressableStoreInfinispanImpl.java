@@ -21,7 +21,7 @@ import org.infinispan.manager.DefaultCacheManager;
 public class ContentAddressableStoreInfinispanImpl implements
 ContentAddressableStore {
 	
-	private DefaultCacheManager manager;
+	private DefaultCacheManager cacheManager;
 	
 	public final static String configFilePropertyName = ContentAddressableStoreFileImpl.class.getName() + ".configFile";
 	
@@ -41,14 +41,14 @@ ContentAddressableStore {
 		Path configFile = Paths.get(configFileName);
 		if (!Files.isRegularFile(configFile))
 			throw new IllegalArgumentException("No config file " + configFileName + " found");
-         manager = new DefaultCacheManager(configFileName, true);
+         cacheManager = new DefaultCacheManager(configFileName, true);
          
         String cacheName = properties.getProperty(cacheNamePropertyName);
  		if(cacheName == null || cacheName.equals("")) {
  			throw new IllegalArgumentException("No property " + cacheNamePropertyName + " found");
  		}
  		
-        cache = manager.getCache(cacheName);
+        cache = cacheManager.getCache(cacheName);
 	}
 
 	@Override
@@ -109,4 +109,10 @@ ContentAddressableStore {
 		return (cache.remove(hash) != null);
 	}
 
+	@Override
+	public void close() {
+		if(cacheManager != null)
+			cacheManager.stop();
+		cacheManager = null;
+	}
 }

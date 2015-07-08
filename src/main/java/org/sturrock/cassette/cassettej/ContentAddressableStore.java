@@ -25,7 +25,7 @@ import java.util.List;
 /**
  * Defines a content-addressable store
  */
-public interface ContentAddressableStore {
+public interface ContentAddressableStore extends AutoCloseable {
 	/**
 	 * Write content to the store, returning its hash. If the store already
 	 * contains this content, the write is discarded but the hash is returned as
@@ -89,4 +89,7 @@ public interface ContentAddressableStore {
 	 * @throws IOException
 	 */
 	boolean delete(byte[] hash) throws IOException;
+	
+	@Override
+	void close();
 }

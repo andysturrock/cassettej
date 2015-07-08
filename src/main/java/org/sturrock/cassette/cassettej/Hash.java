@@ -1,5 +1,6 @@
 package org.sturrock.cassette.cassettej;
 
+import java.util.Arrays;
 import java.util.Formatter;
 
 /*
@@ -26,6 +27,27 @@ import java.util.Formatter;
 public final class Hash {
 	
 	public static final int byteCount = 20;
+	
+	private String string;
+	private byte[] bytes;
+	
+	public Hash(String string) {
+		this.string = new String(string);
+		bytes = getBytes(this.string);
+	}
+	
+	public Hash(byte[] bytes) {
+		this.bytes = Arrays.copyOf(bytes, bytes.length);
+		this.string = getString(this.bytes);
+	}
+	
+	public String getString() {
+		return new String(string);
+	}
+	
+	public byte[] getBytes() {
+		return Arrays.copyOf(bytes, bytes.length);
+	}
 	
 	public static String getString(byte[] hash) {
 		Formatter formatter = new Formatter();
@@ -66,6 +88,34 @@ public final class Hash {
 
         return true;
     }
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(bytes);
+		result = prime * result + ((string == null) ? 0 : string.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		Hash other = (Hash) obj;
+		if (!Arrays.equals(bytes, other.bytes))
+			return false;
+		if (string == null) {
+			if (other.string != null)
+				return false;
+		} else if (!string.equals(other.string))
+			return false;
+		return true;
+	}
 
 
 }

@@ -10,15 +10,10 @@ public class ContentAddressableStoreFactory {
 	}
 
 	public static ContentAddressableStore createContentAddressableStore(
-			ImplementationType implementationType, Properties properties) {
+			ImplementationType implementationType, Properties properties) throws IOException {
 		switch (implementationType) {
 		case FILE:
-			try {
-				return new ContentAddressableStoreFileImpl(properties);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			return new ContentAddressableStoreFileImpl(properties);
 
 		case INFINISPAN:
 			return new ContentAddressableStoreInfinispanImpl(properties);

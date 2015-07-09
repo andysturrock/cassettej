@@ -125,7 +125,7 @@ public final class ContentAddressableStoreFileImpl implements
 			if (!Files.isDirectory(subPath))
 				Files.createDirectories(subPath);
 
-			Files.move(tmpFile, contentPath, StandardCopyOption.ATOMIC_MOVE);
+			Files.move(tmpFile, contentPath);
 		} else {
 			Files.delete(tmpFile);
 		}

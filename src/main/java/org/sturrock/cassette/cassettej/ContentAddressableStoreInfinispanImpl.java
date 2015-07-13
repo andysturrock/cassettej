@@ -23,9 +23,9 @@ ContentAddressableStore {
 	
 	private DefaultCacheManager cacheManager;
 	
-	public final static String configFilePropertyName = ContentAddressableStoreFileImpl.class.getName() + ".configFile";
+	public final static String configFilePropertyName = ContentAddressableStoreInfinispanImpl.class.getName() + ".configFile";
 	
-	public final static String cacheNamePropertyName = ContentAddressableStoreFileImpl.class.getName() + ".cacheName";
+	public final static String cacheNamePropertyName = ContentAddressableStoreInfinispanImpl.class.getName() + ".cacheName";
 	
 	private Cache<Hash, byte[]> cache;
 

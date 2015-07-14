@@ -36,7 +36,7 @@ public interface ContentAddressableStore extends AutoCloseable {
 	 * @return hash of content
 	 * @throws IOException
 	 */
-	byte[] write(InputStream stream) throws IOException;
+	Hash write(InputStream stream) throws IOException;
 
 	/**
 	 * Check whether content exists in the store with the specified hash
@@ -46,7 +46,7 @@ public interface ContentAddressableStore extends AutoCloseable {
 	 * @return <code>true</code> if content exists in the store with specified
 	 *         hash
 	 */
-	boolean contains(byte[] hash);
+	boolean contains(Hash hash);
 
 	/**
 	 * Read content from the store.
@@ -56,7 +56,7 @@ public interface ContentAddressableStore extends AutoCloseable {
 	 * @return <code>InputStream</code> of content if content exists; otherwise <code>null</code>.
 	 * @throws FileNotFoundException
 	 */
-	InputStream read(byte[] hash) throws FileNotFoundException;
+	InputStream read(Hash hash) throws FileNotFoundException;
 
 	/**
 	 * Get the length of the content with the specified hash
@@ -67,7 +67,7 @@ public interface ContentAddressableStore extends AutoCloseable {
 	 *         hash exists.
 	 * @throws IOException
 	 */
-	long getContentLength(byte[] hash) throws IOException;
+	long getContentLength(Hash hash) throws IOException;
 
 	/**
 	 * Get a list of all hashes in the store. The list is generated lazily by
@@ -77,7 +77,7 @@ public interface ContentAddressableStore extends AutoCloseable {
 	 * @return List of hashes in the store.
 	 * @throws IOException
 	 */
-	List<byte[]> getHashes() throws IOException;
+	List<Hash> getHashes() throws IOException;
 
 	/**
 	 * Delete content from the store.
@@ -88,7 +88,7 @@ public interface ContentAddressableStore extends AutoCloseable {
 	 *         otherwise false.
 	 * @throws IOException
 	 */
-	boolean delete(byte[] hash) throws IOException;
+	boolean delete(Hash hash) throws IOException;
 	
 	@Override
 	void close();

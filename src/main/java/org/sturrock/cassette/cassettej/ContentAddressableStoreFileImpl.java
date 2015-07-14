@@ -80,7 +80,7 @@ public final class ContentAddressableStoreFileImpl implements
 	}
 
 	@Override
-	public byte[] write(InputStream inputStream) throws IOException {
+	public Hash write(InputStream inputStream) throws IOException {
 		if (inputStream == null)
 			throw new IllegalArgumentException("inputStream");
 
@@ -111,13 +111,13 @@ public final class ContentAddressableStoreFileImpl implements
 			}
 		}
 
-		final byte[] hash = messageDigest.digest();
+		final byte[] bytes = messageDigest.digest();
 
-		String hashString = Hash.getString(hash);
+		Hash hash = new Hash(bytes);
 
 		// Determine the location for the content file
-		Path contentPath = getContentPath(hashString);
-		Path subPath = getSubPath(hashString);
+		Path contentPath = getContentPath(hash.getString());
+		Path subPath = getSubPath(hash.getString());
 
 		// Test whether a file already exists for this hash
 		if (!Files.exists(contentPath)) {
@@ -136,23 +136,21 @@ public final class ContentAddressableStoreFileImpl implements
 	}
 
 	@Override
-	public boolean contains(byte[] hash) {
+	public boolean contains(Hash hash) {
 		if (hash == null)
 			throw new IllegalArgumentException("hash");
 
-		String hashString = Hash.getString(hash);
-		Path contentPath = getContentPath(hashString);
+		Path contentPath = getContentPath(hash.getString());
 
 		return Files.exists(contentPath);
 	}
 
 	@Override
-	public InputStream read(byte[] hash) throws FileNotFoundException {
+	public InputStream read(Hash hash) throws FileNotFoundException {
 		if (hash == null)
 			throw new IllegalArgumentException("hash");
 
-		String hashString = Hash.getString(hash);
-		Path contentPath = getContentPath(hashString);
+		Path contentPath = getContentPath(hash.getString());
 
 		if (!Files.exists(contentPath)) {
 			return null;
@@ -162,12 +160,11 @@ public final class ContentAddressableStoreFileImpl implements
 	}
 
 	@Override
-	public long getContentLength(byte[] hash) throws IOException {
+	public long getContentLength(Hash hash) throws IOException {
 		if (hash == null)
 			throw new IllegalArgumentException("hash");
 
-		String hashString = Hash.getString(hash);
-		Path contentPath = getContentPath(hashString);
+		Path contentPath = getContentPath(hash.getString());
 
 		if (!Files.exists(contentPath)) {
 			return -1;
@@ -179,8 +176,8 @@ public final class ContentAddressableStoreFileImpl implements
 	}
 
 	@Override
-	public List<byte[]> getHashes() throws IOException  {
-		List<byte[]> hashes = new LinkedList<byte[]>();
+	public List<Hash> getHashes() throws IOException  {
+		List<Hash> hashes = new LinkedList<Hash>();
 
 		try(DirectoryStream<Path> directories = Files.newDirectoryStream(rootPath,
 				"[0-9A-F]*");) {
@@ -188,9 +185,9 @@ public final class ContentAddressableStoreFileImpl implements
 					try(DirectoryStream<Path> files = Files.newDirectoryStream(directory,
 							"[0-9A-F]*");) {
 					for (Path file : files) {
-						byte[] bytes = Hash.getBytes(directory.getFileName().toString()
+						Hash hash = new Hash(directory.getFileName().toString()
 								+ file.getFileName().toString());
-						hashes.add(bytes);
+						hashes.add(hash);
 					}
 				}
 			}
@@ -199,9 +196,8 @@ public final class ContentAddressableStoreFileImpl implements
 	}
 
 	@Override
-	public boolean delete(byte[] hash) throws IOException {
-		String hashString = Hash.getString(hash);
-		Path contentPath = getContentPath(hashString);
+	public boolean delete(Hash hash) throws IOException {
+		Path contentPath = getContentPath(hash.getString());
 
 		if (!Files.exists(contentPath))
 			return false;

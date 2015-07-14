@@ -20,15 +20,14 @@ public abstract class ContentAddressableStoreTest {
 	protected static ContentAddressableStore cas;
 	private String helloWorldString = "Hello World";
 	// Precomputed sha1 hash of "Hello World"
-	private byte[] helloWorldHash = Hash
-			.getBytes("0A4D55A8D778E5022FAB701977C5D840BBC486D0");
+	private Hash helloWorldHash = new Hash("0A4D55A8D778E5022FAB701977C5D840BBC486D0");
 
-	private byte[] writeHelloWorld() throws IOException {
+	private Hash writeHelloWorld() throws IOException {
 
 		byte[] bytes = helloWorldString.getBytes(StandardCharsets.UTF_8);
 
 		InputStream stream = new ByteArrayInputStream(bytes);
-		byte[] hash = cas.write(stream);
+		Hash hash = cas.write(stream);
 		stream.close();
 		return hash;
 	}
@@ -44,9 +43,9 @@ public abstract class ContentAddressableStoreTest {
 	
 	@Test
 	public void testWrite() throws IOException {
-		byte[] actual;
+		Hash actual;
 		actual = writeHelloWorld();
-		assertArrayEquals(actual, helloWorldHash);
+		assertEquals(actual, helloWorldHash);
 	}
 	
 	@Test
@@ -68,12 +67,12 @@ public abstract class ContentAddressableStoreTest {
 	public void testGetHashes() throws IOException {
 		writeHelloWorld();
 
-		List<byte[]> hashes;
+		List<Hash> hashes;
 		hashes = cas.getHashes();
 		// Should only be one piece of content
 		assertEquals(hashes.size(), 1);
 		// The hash should be the same as above
-		assertArrayEquals(helloWorldHash, hashes.get(0));
+		assertEquals(helloWorldHash, hashes.get(0));
 
 	}
 	
@@ -94,12 +93,12 @@ public abstract class ContentAddressableStoreTest {
 	@Test
 	public void testDelete() throws IOException {
 		writeHelloWorld();
-		List<byte[]> hashes;
+		List<Hash> hashes;
 		hashes = cas.getHashes();
 		// Should only be one piece of content
 		assertEquals(hashes.size(), 1);
 
-		byte[] hash = hashes.get(0);
+		Hash hash = hashes.get(0);
 
 		cas.delete(hash);
 

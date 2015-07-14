@@ -52,7 +52,7 @@ ContentAddressableStore {
 	}
 
 	@Override
-	public byte[] write(InputStream stream) throws IOException {
+	public Hash write(InputStream stream) throws IOException {
 		
 		byte[] bytes = IOUtils.toByteArray(stream);
 		
@@ -68,44 +68,36 @@ ContentAddressableStore {
 		
 		cache.put(hash, bytes);
 		
-		return hash.getBytes();
+		return hash;
 	}
 
 	@Override
-	public boolean contains(byte[] hashBytes) {
-		Hash hash = new Hash(hashBytes);
+	public boolean contains(Hash hash) {
 		return cache.containsKey(hash);
 	}
 
 	@Override
-	public InputStream read(byte[] hashBytes) throws FileNotFoundException {
-		Hash hash = new Hash(hashBytes);
+	public InputStream read(Hash hash) throws FileNotFoundException {
 		byte[] bytes = cache.get(hash);
 		return new ByteArrayInputStream(bytes);
 	}
 
 	@Override
-	public long getContentLength(byte[] hashBytes) throws IOException {
-		Hash hash = new Hash(hashBytes);
+	public long getContentLength(Hash hash) throws IOException {
 		byte[] bytes = cache.get(hash);
 		return bytes.length;
 	}
 
 	@Override
-	public List<byte[]> getHashes() throws IOException {
-		List<byte[]> bytesList = new LinkedList<byte[]>();
-		try (CloseableIterator<Hash> hashes = cache.keySet().iterator()) {
-			while(hashes.hasNext()) {
-				Hash hash = hashes.next();
-				bytesList.add(hash.getBytes());
-			}
-		}
-		return bytesList;
+	public List<Hash> getHashes() throws IOException {
+		
+		List<Hash> hashes = new LinkedList<Hash>();
+		hashes.addAll(cache.keySet());
+		return hashes;
 	}
 
 	@Override
-	public boolean delete(byte[] hashBytes) throws IOException {
-		Hash hash = new Hash(hashBytes);
+	public boolean delete(Hash hash) throws IOException {
 		return (cache.remove(hash) != null);
 	}
 

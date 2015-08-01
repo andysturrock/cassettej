@@ -134,6 +134,9 @@ public abstract class ContentAddressableStoreTest {
 		ContentAddressableStore actualSource = (ContentAddressableStore) event
 				.getSource();
 		assertEquals(expectedSource, actualSource);
+		
+		// Must remove the listener as don't want it firing in other tests.
+		cas.removeListener(contentAddressableStoreListenerTest);
 	}
 
 	@Test
@@ -153,5 +156,8 @@ public abstract class ContentAddressableStoreTest {
 		ContentAddressableStore actualSource = (ContentAddressableStore) event
 				.getSource();
 		assertEquals(expectedSource, actualSource);
+		
+		// Must remove the listener as don't want it firing in other tests.
+		cas.removeListener(contentAddressableStoreListenerTest);
 	}
 }

@@ -74,8 +74,10 @@ public class ContentAddressableStoreInfinispanImpl extends
 		byte[] previous = cache.put(hash, bytes);
 		// Don't bother testing whether the previous bytes are
 		// equal to the written bytes - the hash should guarantee
-		// that anyway.
-		if (previous != null) {
+		// that anyway. Just assume that if there is nothing returned
+		// that it is new content and if something is returned it
+		// will be the same as we just added.
+		if (previous == null) {
 			notifyListenersContentAdded(hash);
 		}
 

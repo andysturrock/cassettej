@@ -38,8 +38,8 @@ import java.util.Properties;
  * of ContentAddressableStore.
  * 
  */
-public final class ContentAddressableStoreFileImpl implements
-		ContentAddressableStore {
+public final class ContentAddressableStoreFileImpl extends
+		ContentAddressableStoreImpl {
 	/**
 	 * The root path for all content within this store
 	 */
@@ -55,8 +55,9 @@ public final class ContentAddressableStoreFileImpl implements
 	 * level subdirectories.
 	 */
 	private final int hashPrefixLength = 4;
-	
-	public final static String rootPathPropertyName = ContentAddressableStoreFileImpl.class.getName() + ".rootPath";
+
+	public final static String rootPathPropertyName = ContentAddressableStoreFileImpl.class
+			.getName() + ".rootPath";
 
 	/**
 	 * Initialises the store, using rootPath as the root for all content.
@@ -65,13 +66,15 @@ public final class ContentAddressableStoreFileImpl implements
 	 *            Root path for all content in this store.
 	 * @throws IOException
 	 */
-	public ContentAddressableStoreFileImpl(Properties properties) throws IOException {
+	public ContentAddressableStoreFileImpl(Properties properties)
+			throws IOException {
 		if (properties == null)
 			throw new IllegalArgumentException("properties");
 
 		String rootPath = properties.getProperty(rootPathPropertyName);
-		if(rootPath == null || rootPath.equals("")) {
-			throw new IllegalArgumentException("No property " + rootPathPropertyName + " found");
+		if (rootPath == null || rootPath.equals("")) {
+			throw new IllegalArgumentException("No property "
+					+ rootPathPropertyName + " found");
 		}
 		this.rootPath = Paths.get(rootPath);
 
@@ -86,9 +89,9 @@ public final class ContentAddressableStoreFileImpl implements
 
 		Path tmpFile = Files.createTempFile("CassetteJ", ".tmp");
 		try {
-			Files.copy(inputStream, tmpFile, StandardCopyOption.REPLACE_EXISTING);
-		}
-		catch(Exception e) {
+			Files.copy(inputStream, tmpFile,
+					StandardCopyOption.REPLACE_EXISTING);
+		} catch (Exception e) {
 			Files.delete(tmpFile);
 			throw new IOException(e);
 		}
@@ -100,7 +103,7 @@ public final class ContentAddressableStoreFileImpl implements
 			throw new IllegalArgumentException(e);
 		}
 
-		try(InputStream fileInputStream = new FileInputStream(tmpFile.toFile());) {
+		try (InputStream fileInputStream = new FileInputStream(tmpFile.toFile());) {
 			int n = 0;
 			byte[] buffer = new byte[bufferSize];
 			while (n != -1) {
@@ -126,6 +129,7 @@ public final class ContentAddressableStoreFileImpl implements
 				Files.createDirectories(subPath);
 
 			Files.move(tmpFile, contentPath);
+			notifyListenersContentAdded(hash);
 		} else {
 			Files.delete(tmpFile);
 		}
@@ -176,14 +180,14 @@ public final class ContentAddressableStoreFileImpl implements
 	}
 
 	@Override
-	public List<Hash> getHashes() throws IOException  {
+	public List<Hash> getHashes() throws IOException {
 		List<Hash> hashes = new LinkedList<Hash>();
 
-		try(DirectoryStream<Path> directories = Files.newDirectoryStream(rootPath,
-				"[0-9A-F]*");) {
-				for (Path directory : directories) {
-					try(DirectoryStream<Path> files = Files.newDirectoryStream(directory,
-							"[0-9A-F]*");) {
+		try (DirectoryStream<Path> directories = Files.newDirectoryStream(
+				rootPath, "[0-9A-F]*");) {
+			for (Path directory : directories) {
+				try (DirectoryStream<Path> files = Files.newDirectoryStream(
+						directory, "[0-9A-F]*");) {
 					for (Path file : files) {
 						Hash hash = new Hash(directory.getFileName().toString()
 								+ file.getFileName().toString());
@@ -203,6 +207,7 @@ public final class ContentAddressableStoreFileImpl implements
 			return false;
 
 		Files.delete(contentPath);
+		notifyListenersContentRemoved(hash);
 		return true;
 	}
 
@@ -218,7 +223,7 @@ public final class ContentAddressableStoreFileImpl implements
 				hashString.substring(0, hashPrefixLength));
 		return subPath;
 	}
-	
+
 	@Override
 	public void close() {
 		// Nothing to do here.

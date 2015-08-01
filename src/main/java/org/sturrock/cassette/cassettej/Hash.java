@@ -21,34 +21,35 @@ import java.util.Formatter;
  */
 
 /**
- * Utility class for working with hashes.
+ * Class representing a hash. Contains methods for translating between byte
+ * array and string representations. Class is immutable, so thread-safe.
  *
  */
 public final class Hash {
-	
+
 	public static final int byteCount = 20;
-	
+
 	private String string;
 	private byte[] bytes;
-	
+
 	public Hash(String string) {
 		this.string = new String(string);
 		bytes = getBytes(this.string);
 	}
-	
+
 	public Hash(byte[] bytes) {
 		this.bytes = Arrays.copyOf(bytes, bytes.length);
 		this.string = getString(this.bytes);
 	}
-	
+
 	public String getString() {
 		return new String(string);
 	}
-	
+
 	public byte[] getBytes() {
 		return Arrays.copyOf(bytes, bytes.length);
 	}
-	
+
 	public static String getString(byte[] hash) {
 		Formatter formatter = new Formatter();
 		for (final byte b : hash) {
@@ -68,26 +69,24 @@ public final class Hash {
 		}
 		return data;
 	}
-	
-	public static boolean equals(byte[] hash1, byte[] hash2)
-    {
-        if (hash1 == null)
-            throw new IllegalArgumentException("hash1");
-        if (hash2 == null)
-            throw new IllegalArgumentException("hash2");
-        if (hash1.length != byteCount)
-            throw new IllegalArgumentException("hash1 has invalid length.");
-        if (hash2.length != byteCount)
-            throw new IllegalArgumentException("hash2 hHas invalid length.");
 
-        for (int i = 0; i < byteCount; ++i)
-        {
-            if (hash1[i] != hash2[i])
-                return false;
-        }
+	public static boolean equals(byte[] hash1, byte[] hash2) {
+		if (hash1 == null)
+			throw new IllegalArgumentException("hash1");
+		if (hash2 == null)
+			throw new IllegalArgumentException("hash2");
+		if (hash1.length != byteCount)
+			throw new IllegalArgumentException("hash1 has invalid length.");
+		if (hash2.length != byteCount)
+			throw new IllegalArgumentException("hash2 hHas invalid length.");
 
-        return true;
-    }
+		for (int i = 0; i < byteCount; ++i) {
+			if (hash1[i] != hash2[i])
+				return false;
+		}
+
+		return true;
+	}
 
 	@Override
 	public int hashCode() {
@@ -116,6 +115,5 @@ public final class Hash {
 			return false;
 		return true;
 	}
-
 
 }

@@ -1,6 +1,5 @@
 package org.sturrock.cassette.cassettej;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -20,7 +19,8 @@ public abstract class ContentAddressableStoreTest {
 	protected static ContentAddressableStore cas;
 	private String helloWorldString = "Hello World";
 	// Precomputed sha1 hash of "Hello World"
-	private Hash helloWorldHash = new Hash("0A4D55A8D778E5022FAB701977C5D840BBC486D0");
+	private Hash helloWorldHash = new Hash(
+			"0A4D55A8D778E5022FAB701977C5D840BBC486D0");
 
 	private Hash writeHelloWorld() throws IOException {
 
@@ -31,30 +31,30 @@ public abstract class ContentAddressableStoreTest {
 		stream.close();
 		return hash;
 	}
-	
+
 	@Before
 	public void setUp() throws IOException {
 	}
-	
+
 	@After
 	public void tearDown() throws IOException {
-		
+
 	}
-	
+
 	@Test
 	public void testWrite() throws IOException {
 		Hash actual;
 		actual = writeHelloWorld();
 		assertEquals(actual, helloWorldHash);
 	}
-	
+
 	@Test
 	public void testContains() throws IOException {
 		writeHelloWorld();
 		// Now cas should contain some content with this hash
 		assert (cas.contains(helloWorldHash));
 	}
-	
+
 	@Test
 	public void testGetContentLength() throws IOException {
 		writeHelloWorld();
@@ -62,7 +62,7 @@ public abstract class ContentAddressableStoreTest {
 		assertEquals(cas.getContentLength(helloWorldHash),
 				helloWorldString.length());
 	}
-	
+
 	@Test
 	public void testGetHashes() throws IOException {
 		writeHelloWorld();
@@ -75,7 +75,7 @@ public abstract class ContentAddressableStoreTest {
 		assertEquals(helloWorldHash, hashes.get(0));
 
 	}
-	
+
 	@Test
 	public void testRead() throws IOException {
 		writeHelloWorld();
@@ -89,7 +89,7 @@ public abstract class ContentAddressableStoreTest {
 			assertEquals(helloWorldString, content);
 		}
 	}
-	
+
 	@Test
 	public void testDelete() throws IOException {
 		writeHelloWorld();
@@ -106,7 +106,7 @@ public abstract class ContentAddressableStoreTest {
 		// Now should be no content
 		assertEquals(hashes.size(), 0);
 	}
-	
+
 	private static byte[] readFully(InputStream inputStream) throws IOException {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		byte[] buffer = new byte[1024];
@@ -115,5 +115,43 @@ public abstract class ContentAddressableStoreTest {
 			baos.write(buffer, 0, length);
 		}
 		return baos.toByteArray();
+	}
+
+	@Test
+	public void testContentAddedListener() throws IOException {
+		ContentAddressableStoreListenerTestAdded contentAddressableStoreListenerTest = new ContentAddressableStoreListenerTestAdded();
+		cas.addListener(contentAddressableStoreListenerTest);
+
+		writeHelloWorld();
+
+		ContentAddressableStoreEvent event = contentAddressableStoreListenerTest
+				.getEvent();
+		Hash expectedHash = helloWorldHash;
+		Hash actualHash = event.getHash();
+		assertEquals(expectedHash, actualHash);
+
+		ContentAddressableStore expectedSource = cas;
+		ContentAddressableStore actualSource = (ContentAddressableStore) event
+				.getSource();
+		assertEquals(expectedSource, actualSource);
+	}
+
+	@Test
+	public void testContentRemovedListener() throws IOException {
+		ContentAddressableStoreListenerTestRemoved contentAddressableStoreListenerTest = new ContentAddressableStoreListenerTestRemoved();
+		writeHelloWorld();
+		cas.addListener(contentAddressableStoreListenerTest);
+		cas.delete(helloWorldHash);
+
+		ContentAddressableStoreEvent event = contentAddressableStoreListenerTest
+				.getEvent();
+		Hash expectedHash = helloWorldHash;
+		Hash actualHash = event.getHash();
+		assertEquals(expectedHash, actualHash);
+
+		ContentAddressableStore expectedSource = cas;
+		ContentAddressableStore actualSource = (ContentAddressableStore) event
+				.getSource();
+		assertEquals(expectedSource, actualSource);
 	}
 }

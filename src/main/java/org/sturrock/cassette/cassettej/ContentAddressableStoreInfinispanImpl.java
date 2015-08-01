@@ -15,59 +15,70 @@ import java.util.Properties;
 
 import org.apache.commons.io.IOUtils;
 import org.infinispan.Cache;
-import org.infinispan.commons.util.CloseableIterator;
 import org.infinispan.manager.DefaultCacheManager;
 
-public class ContentAddressableStoreInfinispanImpl implements
-ContentAddressableStore {
-	
+public class ContentAddressableStoreInfinispanImpl extends
+		ContentAddressableStoreImpl {
+
 	private DefaultCacheManager cacheManager;
-	
-	public final static String configFilePropertyName = ContentAddressableStoreInfinispanImpl.class.getName() + ".configFile";
-	
-	public final static String cacheNamePropertyName = ContentAddressableStoreInfinispanImpl.class.getName() + ".cacheName";
-	
+
+	public final static String configFilePropertyName = ContentAddressableStoreInfinispanImpl.class
+			.getName() + ".configFile";
+
+	public final static String cacheNamePropertyName = ContentAddressableStoreInfinispanImpl.class
+			.getName() + ".cacheName";
+
 	private Cache<Hash, byte[]> cache;
 
-	public ContentAddressableStoreInfinispanImpl(Properties properties) throws IOException {
+	public ContentAddressableStoreInfinispanImpl(Properties properties)
+			throws IOException {
 		if (properties == null)
 			throw new IllegalArgumentException("properties");
 
 		String configFileName = properties.getProperty(configFilePropertyName);
-		if(configFileName == null || configFileName.equals("")) {
-			throw new IllegalArgumentException("No property " + configFilePropertyName + " found");
+		if (configFileName == null || configFileName.equals("")) {
+			throw new IllegalArgumentException("No property "
+					+ configFilePropertyName + " found");
 		}
-		
+
 		Path configFile = Paths.get(configFileName);
 		if (!Files.isRegularFile(configFile))
-			throw new IllegalArgumentException("No config file " + configFileName + " found");
-         cacheManager = new DefaultCacheManager(configFileName, true);
-         
-        String cacheName = properties.getProperty(cacheNamePropertyName);
- 		if(cacheName == null || cacheName.equals("")) {
- 			throw new IllegalArgumentException("No property " + cacheNamePropertyName + " found");
- 		}
- 		
-        cache = cacheManager.getCache(cacheName);
+			throw new IllegalArgumentException("No config file "
+					+ configFileName + " found");
+		cacheManager = new DefaultCacheManager(configFileName, true);
+
+		String cacheName = properties.getProperty(cacheNamePropertyName);
+		if (cacheName == null || cacheName.equals("")) {
+			throw new IllegalArgumentException("No property "
+					+ cacheNamePropertyName + " found");
+		}
+
+		cache = cacheManager.getCache(cacheName);
 	}
 
 	@Override
 	public Hash write(InputStream stream) throws IOException {
-		
+
 		byte[] bytes = IOUtils.toByteArray(stream);
-		
+
 		MessageDigest messageDigest;
 		try {
 			messageDigest = MessageDigest.getInstance("SHA1");
 		} catch (NoSuchAlgorithmException e) {
 			throw new IllegalArgumentException(e);
 		}
-		
+
 		messageDigest.update(bytes);
 		Hash hash = new Hash(messageDigest.digest());
-		
-		cache.put(hash, bytes);
-		
+
+		byte[] previous = cache.put(hash, bytes);
+		// Don't bother testing whether the previous bytes are
+		// equal to the written bytes - the hash should guarantee
+		// that anyway.
+		if (previous != null) {
+			notifyListenersContentAdded(hash);
+		}
+
 		return hash;
 	}
 
@@ -90,7 +101,7 @@ ContentAddressableStore {
 
 	@Override
 	public List<Hash> getHashes() throws IOException {
-		
+
 		List<Hash> hashes = new LinkedList<Hash>();
 		hashes.addAll(cache.keySet());
 		return hashes;
@@ -98,12 +109,17 @@ ContentAddressableStore {
 
 	@Override
 	public boolean delete(Hash hash) throws IOException {
-		return (cache.remove(hash) != null);
+		byte[] contentRemoved = cache.remove(hash);
+		if (contentRemoved == null) {
+			return false;
+		}
+		notifyListenersContentRemoved(hash);
+		return true;
 	}
 
 	@Override
 	public void close() {
-		if(cacheManager != null)
+		if (cacheManager != null)
 			cacheManager.stop();
 		cacheManager = null;
 	}

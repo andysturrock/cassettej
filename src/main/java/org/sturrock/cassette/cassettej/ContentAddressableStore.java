@@ -53,7 +53,8 @@ public interface ContentAddressableStore extends AutoCloseable {
 	 * 
 	 * @param hash
 	 *            The hash of the content to read.
-	 * @return <code>InputStream</code> of content if content exists; otherwise <code>null</code>.
+	 * @return <code>InputStream</code> of content if content exists; otherwise
+	 *         <code>null</code>.
 	 * @throws FileNotFoundException
 	 */
 	InputStream read(Hash hash) throws FileNotFoundException;
@@ -89,7 +90,23 @@ public interface ContentAddressableStore extends AutoCloseable {
 	 * @throws IOException
 	 */
 	boolean delete(Hash hash) throws IOException;
-	
+
+	/**
+	 * Add a listener to this store.
+	 * 
+	 * @param contentAddressableStoreListener
+	 */
+	void addListener(
+			ContentAddressableStoreListener contentAddressableStoreListener);
+
+	/**
+	 * Remove a listener to this store.
+	 * 
+	 * @param contentAddressableStoreListener
+	 */
+	void removeListener(
+			ContentAddressableStoreListener contentAddressableStoreListener);
+
 	@Override
 	void close();
 }

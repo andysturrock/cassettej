@@ -15,12 +15,14 @@ import org.junit.Test;
 /**
  * Unit test for simple ContentAddressableStoreFileImpl.
  */
-public class ContentAddressableStoreFileImplTest extends ContentAddressableStoreTest {
+public class ContentAddressableStoreFileImplTest extends
+		ContentAddressableStoreTest {
 	private Path tempDir;
 
 	@Before
 	public void setUp() throws IOException {
-		tempDir = Files.createTempDirectory("ContentAddressableStoreFileImplTest");
+		tempDir = Files
+				.createTempDirectory("ContentAddressableStoreFileImplTest");
 		Properties properties = new Properties();
 		properties.put(ContentAddressableStoreFileImpl.rootPathPropertyName,
 				tempDir.toString());
@@ -60,6 +62,5 @@ public class ContentAddressableStoreFileImplTest extends ContentAddressableStore
 		Properties properties = new Properties();
 		cas = new ContentAddressableStoreFileImpl(properties);
 	}
-
 
 }

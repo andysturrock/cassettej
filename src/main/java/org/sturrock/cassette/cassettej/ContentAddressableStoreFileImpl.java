@@ -1,5 +1,8 @@
 package org.sturrock.cassette.cassettej;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+
 /*
  * Copyright 2015 Andy Sturrock
  * Derived from https://github.com/drewnoakes/cassette
@@ -18,9 +21,9 @@ package org.sturrock.cassette.cassettej;
  */
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,14 +35,16 @@ import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import java.util.zip.DeflaterOutputStream;
+
+import org.apache.commons.io.IOUtils;
 
 /**
  * A content-addressable store backed by the file system. Default implementation
  * of ContentAddressableStore.
  * 
  */
-public final class ContentAddressableStoreFileImpl extends
-		ContentAddressableStoreImpl {
+public final class ContentAddressableStoreFileImpl extends ContentAddressableStoreImpl {
 	/**
 	 * The root path for all content within this store
 	 */
@@ -56,8 +61,7 @@ public final class ContentAddressableStoreFileImpl extends
 	 */
 	private final int hashPrefixLength = 4;
 
-	public final static String rootPathPropertyName = ContentAddressableStoreFileImpl.class
-			.getName() + ".rootPath";
+	public final static String rootPathPropertyName = ContentAddressableStoreFileImpl.class.getName() + ".rootPath";
 
 	/**
 	 * Initialises the store, using rootPath as the root for all content.
@@ -66,15 +70,13 @@ public final class ContentAddressableStoreFileImpl extends
 	 *            Root path for all content in this store.
 	 * @throws IOException
 	 */
-	public ContentAddressableStoreFileImpl(Properties properties)
-			throws IOException {
+	public ContentAddressableStoreFileImpl(Properties properties) throws IOException {
 		if (properties == null)
 			throw new IllegalArgumentException("properties");
 
 		String rootPath = properties.getProperty(rootPathPropertyName);
 		if (rootPath == null || rootPath.equals("")) {
-			throw new IllegalArgumentException("No property "
-					+ rootPathPropertyName + " found");
+			throw new IllegalArgumentException("No property " + rootPathPropertyName + " found");
 		}
 		this.rootPath = Paths.get(rootPath);
 
@@ -84,13 +86,21 @@ public final class ContentAddressableStoreFileImpl extends
 
 	@Override
 	public Hash write(InputStream inputStream) throws IOException {
-		if (inputStream == null)
+		return write(inputStream, new LinkedList<ContentEncoding>());
+	}
+
+	@Override
+	public Hash write(InputStream inputStream, List<ContentEncoding> encodings) throws IOException {
+		if (inputStream == null) {
 			throw new IllegalArgumentException("inputStream");
+		}
+		if (encodings == null) {
+			encodings = new LinkedList<ContentEncoding>();
+		}
 
 		Path tmpFile = Files.createTempFile("CassetteJ", ".tmp");
 		try {
-			Files.copy(inputStream, tmpFile,
-					StandardCopyOption.REPLACE_EXISTING);
+			Files.copy(inputStream, tmpFile, StandardCopyOption.REPLACE_EXISTING);
 		} catch (Exception e) {
 			Files.delete(tmpFile);
 			throw new IOException(e);
@@ -122,16 +132,36 @@ public final class ContentAddressableStoreFileImpl extends
 		Path contentPath = getContentPath(hash.getString());
 		Path subPath = getSubPath(hash.getString());
 
-		// Test whether a file already exists for this hash
+		// Write the file if it doesn't already exist
+		boolean contentAdded = false;
 		if (!Files.exists(contentPath)) {
 			// Ensure the sub-path exists
 			if (!Files.isDirectory(subPath))
 				Files.createDirectories(subPath);
 
 			Files.move(tmpFile, contentPath);
-			notifyListenersContentAdded(hash);
+			contentAdded = true;
 		} else {
 			Files.delete(tmpFile);
+		}
+
+		// Now write the encoded versions
+		for (ContentEncoding encoding : encodings) {
+			Path encodedContentPath = getContentPath(hash.getString() + "." + encoding.getName());
+			if (Files.exists(encodedContentPath)) {
+				continue;
+			}
+			try (OutputStream outputStream = new BufferedOutputStream(Files.newOutputStream(encodedContentPath));
+					DeflaterOutputStream encodedOutputStream = encoding.encode(outputStream);
+					InputStream rawContents = Files.newInputStream(contentPath);) {
+				IOUtils.copy(rawContents, encodedOutputStream);
+				encodedOutputStream.finish();
+			}
+		}
+
+		// Only notify listeners after writing everything
+		if (contentAdded) {
+			notifyListenersContentAdded(hash);
 		}
 
 		// The caller receives the hash, regardless of whether the
@@ -145,12 +175,42 @@ public final class ContentAddressableStoreFileImpl extends
 			throw new IllegalArgumentException("hash");
 
 		Path contentPath = getContentPath(hash.getString());
-
 		return Files.exists(contentPath);
 	}
 
 	@Override
-	public InputStream read(Hash hash) throws FileNotFoundException {
+	public boolean contains(Hash hash, ContentEncoding contentEncoding) {
+		if (hash == null) {
+			throw new IllegalArgumentException("hash");
+		}
+		if (contentEncoding == null) {
+			return contains(hash);
+		}
+
+		Path encodedContentPath = getContentPath(hash.getString() + "." + contentEncoding.getName());
+		return Files.exists(encodedContentPath);
+	}
+
+	@Override
+	public InputStream read(Hash hash, ContentEncoding contentEncoding) throws IOException {
+		if (hash == null)
+			throw new IllegalArgumentException("hash");
+		// null contentEncoding means use no encoding
+		if(contentEncoding == null) {
+			return read(hash);
+		}
+
+		Path encodedContentPath = getContentPath(hash.getString() + "." + contentEncoding.getName());
+
+		if (!Files.exists(encodedContentPath)) {
+			return null;
+		}
+
+		return new BufferedInputStream(Files.newInputStream(encodedContentPath));
+	}
+
+	@Override
+	public InputStream read(Hash hash) throws IOException {
 		if (hash == null)
 			throw new IllegalArgumentException("hash");
 
@@ -160,7 +220,7 @@ public final class ContentAddressableStoreFileImpl extends
 			return null;
 		}
 
-		return new FileInputStream(contentPath.toFile());
+		return new BufferedInputStream(Files.newInputStream(contentPath));
 	}
 
 	@Override
@@ -180,17 +240,38 @@ public final class ContentAddressableStoreFileImpl extends
 	}
 
 	@Override
+	public long getContentLength(Hash hash, ContentEncoding contentEncoding) throws IOException {
+		if (hash == null)
+			throw new IllegalArgumentException("hash");
+
+		if (contentEncoding == null) {
+			return getContentLength(hash);
+		}
+
+		Path encodedContentPath = getContentPath(hash.getString() + "." + contentEncoding.getName());
+
+		if (!Files.exists(encodedContentPath)) {
+			return -1;
+		}
+
+		BasicFileAttributes attrs;
+		attrs = Files.readAttributes(encodedContentPath, BasicFileAttributes.class);
+		return attrs.size();
+	}
+
+	@Override
 	public List<Hash> getHashes() throws IOException {
 		List<Hash> hashes = new LinkedList<Hash>();
 
-		try (DirectoryStream<Path> directories = Files.newDirectoryStream(
-				rootPath, "[0-9A-F]*");) {
+		try (DirectoryStream<Path> directories = Files.newDirectoryStream(rootPath, "[0-9A-F]*");) {
 			for (Path directory : directories) {
-				try (DirectoryStream<Path> files = Files.newDirectoryStream(
-						directory, "[0-9A-F]*");) {
+				try (DirectoryStream<Path> files = Files.newDirectoryStream(directory, "[0-9A-F]*");) {
 					for (Path file : files) {
-						Hash hash = new Hash(directory.getFileName().toString()
-								+ file.getFileName().toString());
+						// Don't add in any encoded names
+						if (file.getFileName().toString().contains(".")) {
+							continue;
+						}
+						Hash hash = new Hash(directory.getFileName().toString() + file.getFileName().toString());
 						hashes.add(hash);
 					}
 				}
@@ -213,14 +294,12 @@ public final class ContentAddressableStoreFileImpl extends
 
 	private Path getContentPath(String hashString) {
 		Path subPath = getSubPath(hashString);
-		Path contentPath = Paths.get(subPath.toString(),
-				hashString.substring(hashPrefixLength));
+		Path contentPath = Paths.get(subPath.toString(), hashString.substring(hashPrefixLength));
 		return contentPath;
 	}
 
 	private Path getSubPath(String hashString) {
-		Path subPath = Paths.get(rootPath.toString(),
-				hashString.substring(0, hashPrefixLength));
+		Path subPath = Paths.get(rootPath.toString(), hashString.substring(0, hashPrefixLength));
 		return subPath;
 	}
 

@@ -8,6 +8,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.After;
@@ -19,17 +20,41 @@ public abstract class ContentAddressableStoreTest {
 	protected static ContentAddressableStore cas;
 	private String helloWorldString = "Hello World";
 	// Precomputed sha1 hash of "Hello World"
-	private Hash helloWorldHash = new Hash(
-			"0A4D55A8D778E5022FAB701977C5D840BBC486D0");
+	private Hash helloWorldHash = new Hash("0A4D55A8D778E5022FAB701977C5D840BBC486D0");
+	// Precomputed gzip byte array of "Hello World"
+	private byte[] helloWorldEncodedBytes = { 31, -117, 8, 0, 0, 0, 0, 0, 0, 0, -13, 72, -51, -55, -55, 87, 8, -49, 47,
+			-54, 73, 1, 0, 86, -79, 23, 74, 11, 0, 0, 0 };
+	private String goodbyeWorldString = "Goodbye World";
+	private Hash goodbyeWorldHash = new Hash("D409B5D36068592A1C06C29FC3B7F16839398793");
 
 	private Hash writeHelloWorld() throws IOException {
+		return writeString(helloWorldString, new LinkedList<ContentEncoding>());
+	}
 
-		byte[] bytes = helloWorldString.getBytes(StandardCharsets.UTF_8);
+	private Hash writeHelloWorld(ContentEncoding contentEncoding) throws IOException {
+		List<ContentEncoding> contentEncodings = new LinkedList<ContentEncoding>();
+		contentEncodings.add(contentEncoding);
+		return writeString(helloWorldString, contentEncodings);
+	}
 
-		InputStream stream = new ByteArrayInputStream(bytes);
-		Hash hash = cas.write(stream);
-		stream.close();
-		return hash;
+	private Hash writeString(String string) throws IOException {
+		return writeString(string, new LinkedList<ContentEncoding>());
+	}
+
+	private Hash writeString(String string, ContentEncoding contentEncoding) throws IOException {
+		List<ContentEncoding> contentEncodings = new LinkedList<ContentEncoding>();
+		contentEncodings.add(contentEncoding);
+		return writeString(string, contentEncodings);
+	}
+
+	private Hash writeString(String string, List<ContentEncoding> contentEncodings) throws IOException {
+
+		byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
+
+		try (InputStream stream = new ByteArrayInputStream(bytes);) {
+			Hash hash = cas.write(stream, contentEncodings);
+			return hash;
+		}
 	}
 
 	@Before
@@ -45,22 +70,59 @@ public abstract class ContentAddressableStoreTest {
 	public void testWrite() throws IOException {
 		Hash actual;
 		actual = writeHelloWorld();
-		assertEquals(actual, helloWorldHash);
+		assertEquals(helloWorldHash, actual);
+	}
+
+	@Test
+	public void testEncodedWrite() throws IOException {
+		Hash actual;
+		actual = writeHelloWorld(new GZIPContentEncoding());
+		assertEquals(helloWorldHash, actual);
 	}
 
 	@Test
 	public void testContains() throws IOException {
 		writeHelloWorld();
 		// Now cas should contain some content with this hash
-		assert (cas.contains(helloWorldHash));
+		assertEquals(true, cas.contains(helloWorldHash));
+
+		// And shouldn't contain this hash
+		assertEquals(false, cas.contains(goodbyeWorldHash));
+
+		writeString(goodbyeWorldString);
+		// And now it should
+		assertEquals(true, cas.contains(goodbyeWorldHash));
+	}
+
+	@Test
+	public void testEncodedContains() throws IOException {
+		ContentEncoding encoding = new GZIPContentEncoding();
+		writeHelloWorld(encoding);
+		// Now cas should contain some content with this hash
+		assertEquals(true, cas.contains(helloWorldHash, encoding));
+
+		// And shouldn't contain this hash
+		assertEquals(false, cas.contains(goodbyeWorldHash, encoding));
+
+		writeString(goodbyeWorldString, encoding);
+		// And now it should
+		assertEquals(true, cas.contains(goodbyeWorldHash, encoding));
 	}
 
 	@Test
 	public void testGetContentLength() throws IOException {
 		writeHelloWorld();
 		// The content length should be 11 (Hello World)
-		assertEquals(cas.getContentLength(helloWorldHash),
-				helloWorldString.length());
+		assertEquals(helloWorldString.length(), cas.getContentLength(helloWorldHash));
+	}
+
+	@Test
+	public void testEncodedGetContentLength() throws IOException {
+		writeHelloWorld(new GZIPContentEncoding());
+		// The content length should be 11 (Hello World)
+		assertEquals(helloWorldString.length(), cas.getContentLength(helloWorldHash));
+		// The encoded content length should be 48 (gzipped Hello World)
+		assertEquals(helloWorldEncodedBytes.length, cas.getContentLength(helloWorldHash, new GZIPContentEncoding()));
 	}
 
 	@Test
@@ -69,11 +131,15 @@ public abstract class ContentAddressableStoreTest {
 
 		List<Hash> hashes;
 		hashes = cas.getHashes();
+
 		// Should only be one piece of content
-		assertEquals(hashes.size(), 1);
+		assertEquals(1, hashes.size());
 		// The hash should be the same as above
 		assertEquals(helloWorldHash, hashes.get(0));
 
+		writeString(goodbyeWorldString);
+		hashes = cas.getHashes();
+		assertEquals(2, hashes.size());
 	}
 
 	@Test
@@ -83,28 +149,50 @@ public abstract class ContentAddressableStoreTest {
 		try (InputStream stream = cas.read(helloWorldHash);) {
 			if (stream == null)
 				fail("Content not found");
-			String content = new String(readFully(stream),
-					StandardCharsets.UTF_8);
+			String content = new String(readFully(stream), StandardCharsets.UTF_8);
 			// Content should be Hello World
 			assertEquals(helloWorldString, content);
 		}
 	}
 
 	@Test
+	public void testEncodedRead() throws IOException {
+		ContentEncoding encoding = new GZIPContentEncoding();
+		writeHelloWorld(encoding);
+
+		try (InputStream stream = cas.read(helloWorldHash, encoding);) {
+			if (stream == null)
+				fail("Content not found");
+
+			try (InputStream decodedStream = encoding.decode(stream);) {
+				String content = new String(readFully(decodedStream), StandardCharsets.UTF_8);
+				// Content should be Hello World
+				assertEquals(helloWorldString, content);
+			}
+		}
+	}
+
+	@Test
 	public void testDelete() throws IOException {
-		writeHelloWorld();
+		writeHelloWorld(new GZIPContentEncoding());
+		writeString(goodbyeWorldString);
 		List<Hash> hashes;
 		hashes = cas.getHashes();
-		// Should only be one piece of content
-		assertEquals(hashes.size(), 1);
+		// Should two pieces of content
+		assertEquals(2, hashes.size());
 
 		Hash hash = hashes.get(0);
-
 		cas.delete(hash);
-
+		hashes = cas.getHashes();
+		// Now should be only one piece of content
+		assertEquals(1, hashes.size());
+		
+		hashes = cas.getHashes();
+		hash = hashes.get(0);
+		cas.delete(hash);
 		hashes = cas.getHashes();
 		// Now should be no content
-		assertEquals(hashes.size(), 0);
+		assertEquals(0, hashes.size());
 	}
 
 	private static byte[] readFully(InputStream inputStream) throws IOException {
@@ -124,17 +212,15 @@ public abstract class ContentAddressableStoreTest {
 
 		writeHelloWorld();
 
-		ContentAddressableStoreEvent event = contentAddressableStoreListenerTest
-				.getEvent();
+		ContentAddressableStoreEvent event = contentAddressableStoreListenerTest.getEvent();
 		Hash expectedHash = helloWorldHash;
 		Hash actualHash = event.getHash();
 		assertEquals(expectedHash, actualHash);
 
 		ContentAddressableStore expectedSource = cas;
-		ContentAddressableStore actualSource = (ContentAddressableStore) event
-				.getSource();
+		ContentAddressableStore actualSource = (ContentAddressableStore) event.getSource();
 		assertEquals(expectedSource, actualSource);
-		
+
 		// Must remove the listener as don't want it firing in other tests.
 		cas.removeListener(contentAddressableStoreListenerTest);
 	}
@@ -146,17 +232,15 @@ public abstract class ContentAddressableStoreTest {
 		cas.addListener(contentAddressableStoreListenerTest);
 		cas.delete(helloWorldHash);
 
-		ContentAddressableStoreEvent event = contentAddressableStoreListenerTest
-				.getEvent();
+		ContentAddressableStoreEvent event = contentAddressableStoreListenerTest.getEvent();
 		Hash expectedHash = helloWorldHash;
 		Hash actualHash = event.getHash();
 		assertEquals(expectedHash, actualHash);
 
 		ContentAddressableStore expectedSource = cas;
-		ContentAddressableStore actualSource = (ContentAddressableStore) event
-				.getSource();
+		ContentAddressableStore actualSource = (ContentAddressableStore) event.getSource();
 		assertEquals(expectedSource, actualSource);
-		
+
 		// Must remove the listener as don't want it firing in other tests.
 		cas.removeListener(contentAddressableStoreListenerTest);
 	}

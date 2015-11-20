@@ -1,6 +1,5 @@
 package org.sturrock.cassette.cassettej;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -39,6 +38,18 @@ public interface ContentAddressableStore extends AutoCloseable {
 	Hash write(InputStream stream) throws IOException;
 
 	/**
+	 * Write content to the store in raw format and also formats specified in
+	 * the ContentEncodings.  If encodings is null or an empty list then no
+	 * encodings are used.
+	 * 
+	 * @param stream
+	 *            Content to be written
+	 * @return hash of (raw) content
+	 * @throws IOException
+	 */
+	Hash write(InputStream stream, List<ContentEncoding> encodings) throws IOException;
+
+	/**
 	 * Check whether content exists in the store with the specified hash
 	 * 
 	 * @param hash
@@ -47,6 +58,18 @@ public interface ContentAddressableStore extends AutoCloseable {
 	 *         hash
 	 */
 	boolean contains(Hash hash);
+	
+	/**
+	 * Check whether content exists in the store with the specified hash with the specified encoding
+	 * 
+	 * @param hash
+	 *            Hash of content to check
+	 * @param contentEncoding
+	 *            Type of encoding to use.
+	 * @return <code>true</code> if content exists in the store with specified
+	 *         hash and specified encoding.
+	 */
+	boolean contains(Hash hash, ContentEncoding contentEncoding);
 
 	/**
 	 * Read content from the store.
@@ -55,9 +78,23 @@ public interface ContentAddressableStore extends AutoCloseable {
 	 *            The hash of the content to read.
 	 * @return <code>InputStream</code> of content if content exists; otherwise
 	 *         <code>null</code>.
-	 * @throws FileNotFoundException
+	 * @throws IOException 
 	 */
-	InputStream read(Hash hash) throws FileNotFoundException;
+	InputStream read(Hash hash) throws IOException;
+
+	/**
+	 * Read content from the store, returning using the given encoding.
+	 * 
+	 * @param hash
+	 *            The hash of the (raw) content to read.
+	 * @param contentEncoding
+	 *            Type of encoding to use to return the stream. If null then no
+	 *            encoding is used.
+	 * @return <code>InputStream</code> of content if content exists; otherwise
+	 *         <code>null</code>.
+	 * @throws IOException
+	 */
+	InputStream read(Hash hash, ContentEncoding contentEncoding) throws IOException;
 
 	/**
 	 * Get the length of the content with the specified hash
@@ -69,6 +106,20 @@ public interface ContentAddressableStore extends AutoCloseable {
 	 * @throws IOException
 	 */
 	long getContentLength(Hash hash) throws IOException;
+
+	/**
+	 * Get the length of the encoded content with the specified hash.
+	 * 
+	 * @param hash
+	 *            The hash of the content
+	 * @param contentEncoding
+	 *            The encoding type to use. If null then no encoding is used and
+	 *            the raw content is assumed.
+	 * @return The length of the content, or -1 if no content with the specified
+	 *         hash exists.
+	 * @throws IOException
+	 */
+	long getContentLength(Hash hash, ContentEncoding contentEncoding) throws IOException;
 
 	/**
 	 * Get a list of all hashes in the store. The list is generated lazily by
@@ -96,16 +147,14 @@ public interface ContentAddressableStore extends AutoCloseable {
 	 * 
 	 * @param contentAddressableStoreListener
 	 */
-	void addListener(
-			ContentAddressableStoreListener contentAddressableStoreListener);
+	void addListener(ContentAddressableStoreListener contentAddressableStoreListener);
 
 	/**
 	 * Remove a listener to this store.
 	 * 
 	 * @param contentAddressableStoreListener
 	 */
-	void removeListener(
-			ContentAddressableStoreListener contentAddressableStoreListener);
+	void removeListener(ContentAddressableStoreListener contentAddressableStoreListener);
 
 	@Override
 	void close();

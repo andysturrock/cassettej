@@ -20,12 +20,12 @@ public abstract class ContentAddressableStoreTest {
 	protected static ContentAddressableStore cas;
 	private String helloWorldString = "Hello World";
 	// Precomputed sha1 hash of "Hello World"
-	private Hash helloWorldHash = new Hash("0A4D55A8D778E5022FAB701977C5D840BBC486D0");
+	protected Hash helloWorldHash = new Hash("0A4D55A8D778E5022FAB701977C5D840BBC486D0");
 	// Precomputed gzip byte array of "Hello World"
 	private byte[] helloWorldEncodedBytes = { 31, -117, 8, 0, 0, 0, 0, 0, 0, 0, -13, 72, -51, -55, -55, 87, 8, -49, 47,
 			-54, 73, 1, 0, 86, -79, 23, 74, 11, 0, 0, 0 };
 	private String goodbyeWorldString = "Goodbye World";
-	private Hash goodbyeWorldHash = new Hash("D409B5D36068592A1C06C29FC3B7F16839398793");
+	protected Hash goodbyeWorldHash = new Hash("D409B5D36068592A1C06C29FC3B7F16839398793");
 
 	private Hash writeHelloWorld() throws IOException {
 		return writeString(helloWorldString, new LinkedList<ContentEncoding>());
@@ -127,9 +127,14 @@ public abstract class ContentAddressableStoreTest {
 
 	@Test
 	public void testGetHashes() throws IOException {
+		
+		List<Hash> hashes;
+		hashes = cas.getHashes();
+		// Should only be nothing in there
+		assertEquals(0, hashes.size());
+		
 		writeHelloWorld();
 
-		List<Hash> hashes;
 		hashes = cas.getHashes();
 
 		// Should only be one piece of content

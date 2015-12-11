@@ -51,6 +51,14 @@ public final class ContentAddressableStoreFileImpl extends ContentAddressableSto
 	private final Path rootPath;
 
 	/**
+	 * 
+	 * @return the root path for all content within this store
+	 */
+	public Path getRootPath() {
+		return rootPath;
+	}
+
+	/**
 	 * The size of the byte array buffer used for read/write operations.
 	 */
 	private final int bufferSize = 4096;
@@ -59,7 +67,7 @@ public final class ContentAddressableStoreFileImpl extends ContentAddressableSto
 	 * The number of characters from the hash to use for the name of the top
 	 * level subdirectories.
 	 */
-	private final int hashPrefixLength = 4;
+	public final int hashPrefixLength = 4;
 
 	public final static String rootPathPropertyName = ContentAddressableStoreFileImpl.class.getName() + ".rootPath";
 
@@ -196,7 +204,7 @@ public final class ContentAddressableStoreFileImpl extends ContentAddressableSto
 		if (hash == null)
 			throw new IllegalArgumentException("hash");
 		// null contentEncoding means use no encoding
-		if(contentEncoding == null) {
+		if (contentEncoding == null) {
 			return read(hash);
 		}
 
@@ -280,26 +288,63 @@ public final class ContentAddressableStoreFileImpl extends ContentAddressableSto
 		}
 	}
 
+	/**
+	 * Class for wrapping IOExceptions so they become unchecked and thus
+	 * throwable from inside a lambda in a stream.
+	 *
+	 */
+	private class UncheckedIOException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+		public IOException ioException;
+
+		public UncheckedIOException(IOException ioException) {
+			this.ioException = ioException;
+		}
+	}
+
 	@Override
 	public boolean delete(Hash hash) throws IOException {
-		Path contentPath = getContentPath(hash.getString());
+		String hashString = hash.getString();
+		Path contentPath = getContentPath(hashString);
 
 		if (!Files.exists(contentPath))
 			return false;
 
-		Files.delete(contentPath);
+		Path dirPath = getSubPath(hashString);
+		// Java's streams are so broken when it comes to checked exceptions...
+		try {
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(dirPath,
+					hashString.substring(hashPrefixLength) + "*")) {
+				stream.forEach(file -> {
+					try {
+						Files.delete(file);
+					} catch (IOException e) {
+						throw new UncheckedIOException(e);
+					}
+				});
+			}
+		} catch (UncheckedIOException e) {
+			throw e.ioException;
+		}
+		// And delete the directory if it is empty now
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(dirPath)) {
+			if (!stream.iterator().hasNext()) {
+				Files.delete(dirPath);
+			}
+		}
+
 		notifyListenersContentRemoved(hash);
 		return true;
 	}
 
-	private Path getContentPath(String hashString) {
+	public Path getContentPath(String hashString) {
 		Path subPath = getSubPath(hashString);
-		Path contentPath = Paths.get(subPath.toString(), hashString.substring(hashPrefixLength));
+		Path contentPath = subPath.resolve(hashString.substring(hashPrefixLength));
 		return contentPath;
 	}
 
-	private Path getSubPath(String hashString) {
-		Path subPath = Paths.get(rootPath.toString(), hashString.substring(0, hashPrefixLength));
+	public Path getSubPath(String hashString) {
+		Path subPath = rootPath.resolve(hashString.substring(0, hashPrefixLength));
 		return subPath;
 	}
 

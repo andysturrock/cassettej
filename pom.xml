@@ -16,75 +16,75 @@
 		<version.org.infinispan>6.3.0.Final-redhat-5</version.org.infinispan>
 
 	</properties>
-	
-	  <profiles>
 
-    <!-- Configure the JBoss GA Maven repository -->
-    <profile>
-      <id>jboss-ga-repository</id>
-      <activation>
-        <property>
-          <name>env.JBOSS_REPO</name>
-          <value>jboss-ga-repository</value>
-        </property>
-      </activation>
-      <repositories>
-        <repository>
-          <id>jboss-ga-repository</id>
-          <url>http://maven.repository.redhat.com/techpreview/all</url>
-          <releases>
-            <enabled>true</enabled>
-          </releases>
-          <snapshots>
-            <enabled>false</enabled>
-          </snapshots>
-        </repository>
-      </repositories>
-      <pluginRepositories>
-        <pluginRepository>
-          <id>jboss-ga-plugin-repository</id>
-          <url>http://maven.repository.redhat.com/techpreview/all</url>
-          <releases>
-            <enabled>true</enabled>
-          </releases>
-          <snapshots>
-            <enabled>false</enabled>
-          </snapshots>
-        </pluginRepository>
-      </pluginRepositories>
-    </profile>
-    
-       <!-- Configure the JBoss Early Access Maven repository -->
-    <profile>
-      <id>jboss-earlyaccess-repository</id>
-      <repositories>
-        <repository>
-          <id>jboss-earlyaccess-repository</id>
-          <url>http://maven.repository.redhat.com/earlyaccess/all/</url>
-          <releases>
-            <enabled>true</enabled>
-          </releases>
-          <snapshots>
-            <enabled>false</enabled>
-          </snapshots>
-        </repository>
-      </repositories>
-      <pluginRepositories>
-        <pluginRepository>
-          <id>jboss-earlyaccess-plugin-repository</id>
-          <url>http://maven.repository.redhat.com/earlyaccess/all/</url>
-          <releases>
-            <enabled>true</enabled>
-          </releases>
-          <snapshots>
-            <enabled>false</enabled>
-          </snapshots>
-        </pluginRepository>
-      </pluginRepositories>
-    </profile>
+	<profiles>
 
-  </profiles>
-  
+		<!-- Configure the JBoss GA Maven repository -->
+		<profile>
+			<id>jboss-ga-repository</id>
+			<activation>
+				<property>
+					<name>env.JBOSS_REPO</name>
+					<value>jboss-ga-repository</value>
+				</property>
+			</activation>
+			<repositories>
+				<repository>
+					<id>jboss-ga-repository</id>
+					<url>http://maven.repository.redhat.com/techpreview/all</url>
+					<releases>
+						<enabled>true</enabled>
+					</releases>
+					<snapshots>
+						<enabled>false</enabled>
+					</snapshots>
+				</repository>
+			</repositories>
+			<pluginRepositories>
+				<pluginRepository>
+					<id>jboss-ga-plugin-repository</id>
+					<url>http://maven.repository.redhat.com/techpreview/all</url>
+					<releases>
+						<enabled>true</enabled>
+					</releases>
+					<snapshots>
+						<enabled>false</enabled>
+					</snapshots>
+				</pluginRepository>
+			</pluginRepositories>
+		</profile>
+
+		<!-- Configure the JBoss Early Access Maven repository -->
+		<profile>
+			<id>jboss-earlyaccess-repository</id>
+			<repositories>
+				<repository>
+					<id>jboss-earlyaccess-repository</id>
+					<url>http://maven.repository.redhat.com/earlyaccess/all/</url>
+					<releases>
+						<enabled>true</enabled>
+					</releases>
+					<snapshots>
+						<enabled>false</enabled>
+					</snapshots>
+				</repository>
+			</repositories>
+			<pluginRepositories>
+				<pluginRepository>
+					<id>jboss-earlyaccess-plugin-repository</id>
+					<url>http://maven.repository.redhat.com/earlyaccess/all/</url>
+					<releases>
+						<enabled>true</enabled>
+					</releases>
+					<snapshots>
+						<enabled>false</enabled>
+					</snapshots>
+				</pluginRepository>
+			</pluginRepositories>
+		</profile>
+
+	</profiles>
+
 	<repositories>
 		<repository>
 			<id>git-andysturrock</id>
@@ -140,6 +140,15 @@
 							<Dependencies>org.infinispan:jdg-6.4 services</Dependencies>
 						</manifestEntries>
 					</archive>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.1</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
 				</configuration>
 			</plugin>
 		</plugins>

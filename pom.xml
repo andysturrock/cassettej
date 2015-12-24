@@ -4,7 +4,7 @@
 	<groupId>org.sturrock</groupId>
 	<artifactId>cassettej</artifactId>
 	<packaging>jar</packaging>
-	<version>2.0-SNAPSHOT</version>
+	<version>2.0.0</version>
 	<name>cassettej</name>
 	<url>http://maven.apache.org</url>
 	<properties>
@@ -16,6 +16,15 @@
 		<version.org.infinispan>6.3.0.Final-redhat-5</version.org.infinispan>
 
 	</properties>
+
+	<repositories>
+		<repository>
+			<id>git-andysturrock</id>
+			<name>andysturrock's Git based repo</name>
+			<url>https://github.com/andysturrock/cassettej/raw/master/</url>
+		</repository>
+
+	</repositories>
 
 	<dependencyManagement>
 		<dependencies>

@@ -64,18 +64,21 @@ public final class ContentAddressableStoreFileImpl extends ContentAddressableSto
 	private final int bufferSize = 4096;
 
 	/**
-	 * The number of characters from the hash to use for the name of the top
-	 * level subdirectories.
+	 * The number of characters from the hash to use for the name of the top level
+	 * subdirectories.
 	 */
 	public final int hashPrefixLength = 4;
 
 	public final static String rootPathPropertyName = ContentAddressableStoreFileImpl.class.getName() + ".rootPath";
 
 	/**
-	 * Initialises the store, using rootPath as the root for all content.
+	 * Initialises the store.
 	 * 
-	 * @param rootPath
-	 *            Root path for all content in this store.
+	 * @param properties Properties controlling construction. Currently supported
+	 *                   properties are:
+	 *                   <code>ContentAddressableStoreFileImpl.class.getName() + ".rootPath"</code>
+	 *                   which specifies the path to the root directory of the
+	 *                   storage.
 	 * @throws IOException
 	 */
 	public ContentAddressableStoreFileImpl(Properties properties) throws IOException {
@@ -289,8 +292,8 @@ public final class ContentAddressableStoreFileImpl extends ContentAddressableSto
 	}
 
 	/**
-	 * Class for wrapping IOExceptions so they become unchecked and thus
-	 * throwable from inside a lambda in a stream.
+	 * Class for wrapping IOExceptions so they become unchecked and thus throwable
+	 * from inside a lambda in a stream.
 	 *
 	 */
 	private class UncheckedIOException extends RuntimeException {

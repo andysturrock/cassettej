@@ -1,12 +1,36 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.sturrock</groupId>
 	<artifactId>cassettej</artifactId>
 	<packaging>jar</packaging>
 	<version>2.0.0</version>
-	<name>cassettej</name>
-	<url>http://maven.apache.org</url>
+	<name>${project.groupId}:${project.artifactId}</name>
+	<url>https://github.com/andysturrock/cassettej</url>
+
+	<licenses>
+		<license>
+			<name>MIT License</name>
+			<url>http://www.opensource.org/licenses/mit-license.php</url>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<name>Andy Sturrock</name>
+			<organizationUrl>https://github.com/andysturrock</organizationUrl>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:https://github.com/andysturrock/cassettej.git</connection>
+		<developerConnection>scm:git:https://github.com/andysturrock/cassettej.git</developerConnection>
+		<url>https://github.com/andysturrock/cassettej</url>
+	</scm>
+
+
 	<properties>
 		<!-- maven-compiler-plugin -->
 		<maven.compiler.target>1.8</maven.compiler.target>

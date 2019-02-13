@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,6 +12,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Properties;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,15 +27,19 @@ public class ContentAddressableStoreFileImplTest extends ContentAddressableStore
 	@Before
 	public void setUp() throws IOException {
 		tempDir = Files.createTempDirectory("ContentAddressableStoreFileImplTest");
-		Properties properties = new Properties();
-		properties.put(ContentAddressableStoreFileImpl.rootPathPropertyName, tempDir.toString());
-		fileCas = new ContentAddressableStoreFileImpl(properties);
+		fileCas = createCas();
 		cas = fileCas;
 	}
 
 	@After
 	public void tearDown() throws IOException {
 		deleteTempDirectory();
+	}
+	
+	private ContentAddressableStoreFileImpl createCas() throws IOException {
+		Properties properties = new Properties();
+		properties.put(ContentAddressableStoreFileImpl.rootPathPropertyName, tempDir.toString());
+		return new ContentAddressableStoreFileImpl(properties);
 	}
 
 	private void deleteTempDirectory() throws IOException {
@@ -93,5 +99,60 @@ public class ContentAddressableStoreFileImplTest extends ContentAddressableStore
 		Path expected = rootPath.resolve(hashString.substring(0, fileCas.hashPrefixLength));
 		expected = expected.resolve(hashString.substring(fileCas.hashPrefixLength));
 		assertEquals(expected, contentPath);
+	}
+	
+	private class CasWriter implements Runnable {
+
+		private ContentAddressableStoreFileImpl cas;
+		private String content;
+		private IOException e;
+		
+		public CasWriter(ContentAddressableStoreFileImpl cas, String content) {
+			this.cas = cas;
+			this.content = content;
+		}
+		@Override
+		public void run() {
+			try {
+				for(int i = 0; i < 1000; ++i) {
+					InputStream inputStream = IOUtils.toInputStream(content, "UTF-8");
+					cas.write(inputStream);
+					inputStream.close();
+				}
+			} catch (IOException e) {
+				this.e = e;
+			}
+		}
+		public IOException getException() {
+			return e;
+		}
+	}
+	
+	@Test
+	public void testConcurrentWrites() throws IOException, InterruptedException {
+		// This isn't massively reliable but run enough times you will get
+		// a java.nio.file.FileAlreadyExistsException if the Files.move() call 
+		// (roughly line 153 at time of writing) in ContentAddressableFileStoreImpl
+		// doesn't use StandardCopyOption.REPLACE_EXISTING
+		// A reliable way to trigger the exception is to add a Thread.sleep(1000) just
+		// before the Files.move() call. 
+		ContentAddressableStoreFileImpl fileCas2 = createCas();
+		String source = "This is the source of my input stream";
+		CasWriter casWriter1 = new CasWriter(fileCas, source);
+		CasWriter casWriter2 = new CasWriter(fileCas2, source);
+		Thread thread1 = new Thread(casWriter1);
+		Thread thread2 = new Thread(casWriter2);
+		thread1.start();
+		thread2.start();
+		thread1.join();
+		thread2.join();
+		IOException e = casWriter1.getException(); 
+		if(e != null) {
+			throw e;
+		}
+		e = casWriter2.getException(); 
+		if(e != null) {
+			throw e;
+		}
 	}
 }

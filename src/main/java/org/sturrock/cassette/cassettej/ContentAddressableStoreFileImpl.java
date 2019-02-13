@@ -150,7 +150,7 @@ public final class ContentAddressableStoreFileImpl extends ContentAddressableSto
 			if (!Files.isDirectory(subPath))
 				Files.createDirectories(subPath);
 
-			Files.move(tmpFile, contentPath);
+			Files.move(tmpFile, contentPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 			contentAdded = true;
 		} else {
 			Files.delete(tmpFile);

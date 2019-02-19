@@ -38,6 +38,10 @@ public class ContentAddressableStoreFileImplTest extends ContentAddressableStore
 	
 	private ContentAddressableStoreFileImpl createCas() throws IOException {
 		Properties properties = new Properties();
+		return createCas(properties);
+	}
+	
+	private ContentAddressableStoreFileImpl createCas(Properties properties) throws IOException {
 		properties.put(ContentAddressableStoreFileImpl.rootPathPropertyName, tempDir.toString());
 		return new ContentAddressableStoreFileImpl(properties);
 	}
@@ -154,5 +158,17 @@ public class ContentAddressableStoreFileImplTest extends ContentAddressableStore
 		if(e != null) {
 			throw e;
 		}
+	}
+	
+	@Test
+	public void testSetAtomicMoveProperty() throws IOException {
+		// Default is false
+		assertEquals(false, fileCas.isUsingAtomicMove());
+		
+		// Create one with true
+		Properties properties = new Properties();
+		properties.put(ContentAddressableStoreFileImpl.atomicMovePropertyName, "true");
+		ContentAddressableStoreFileImpl fileCas2 = createCas(properties);
+		assertEquals(true, fileCas2.isUsingAtomicMove());
 	}
 }

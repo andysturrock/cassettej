@@ -6,7 +6,7 @@
 	<groupId>org.sturrock</groupId>
 	<artifactId>cassettej</artifactId>
 	<packaging>jar</packaging>
-	<version>2.0.2</version>
+	<version>2.0.3</version>
 	<name>${project.groupId}:${project.artifactId}</name>
 	<description>Partial Java port of the .NET content addressable storage library Cassette https://github.com/point-platform/cassette</description>
 	<url>https://github.com/andysturrock/cassettej</url>

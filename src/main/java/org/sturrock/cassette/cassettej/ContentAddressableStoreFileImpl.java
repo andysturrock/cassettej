@@ -69,8 +69,25 @@ public final class ContentAddressableStoreFileImpl extends ContentAddressableSto
 	 */
 	public final int hashPrefixLength = 4;
 
+	/**
+	 * Name of the property for specifying the root path.
+	 */
 	public final static String rootPathPropertyName = ContentAddressableStoreFileImpl.class.getName() + ".rootPath";
+	
+	/**
+	 * Name of the property specifying whether to use the StandardCopyOption.ATOMIC_MOVE option
+	 */
+	public final static String atomicMovePropertyName = ContentAddressableStoreFileImpl.class.getName() + ".StandardCopyOption.ATOMIC_MOVE";
 
+	private boolean useAtomicMove = false;
+	
+	/**
+	 * @return whether this filestore is using atomic moves (some filesystems don't support this) 
+	 */
+	public boolean isUsingAtomicMove() {
+		return useAtomicMove;
+	}
+	
 	/**
 	 * Initialises the store.
 	 * 
@@ -85,6 +102,9 @@ public final class ContentAddressableStoreFileImpl extends ContentAddressableSto
 		if (properties == null)
 			throw new IllegalArgumentException("properties");
 
+		String atomicMove = properties.getProperty(atomicMovePropertyName);
+		useAtomicMove = Boolean.parseBoolean(atomicMove); 
+		
 		String rootPath = properties.getProperty(rootPathPropertyName);
 		if (rootPath == null || rootPath.equals("")) {
 			throw new IllegalArgumentException("No property " + rootPathPropertyName + " found");
@@ -150,7 +170,11 @@ public final class ContentAddressableStoreFileImpl extends ContentAddressableSto
 			if (!Files.isDirectory(subPath))
 				Files.createDirectories(subPath);
 
-			Files.move(tmpFile, contentPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+			if(useAtomicMove) {
+				Files.move(tmpFile, contentPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+			} else {
+				Files.move(tmpFile, contentPath, StandardCopyOption.REPLACE_EXISTING);
+			}
 			contentAdded = true;
 		} else {
 			Files.delete(tmpFile);
